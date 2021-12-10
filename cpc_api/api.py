@@ -107,8 +107,17 @@ class CPCApi(object):
         return [Parliamentarian(depute[self.ptype], self) for depute in data[self.ptype_plural]]
 
     def search_parlementaires(self, q, field='nom', limit=5):
-        return extractBests(q, self.parlementaires(), processor=lambda x: x[field] if type(x) == dict else x, limit=limit)
-
+        """
+        Find a parliamentary based on query `q` on field `field` in the list of parliamentarians.
+        :param q:
+        :param field:
+        :param limit:
+        :return:
+        """
+        extracted = extractBests(q, self.parlementaires(),
+                            processor=lambda x: x.__dict__[field] if isinstance(x, Parliamentarian) else x,
+                            limit=limit)
+        return extracted
 
 class Vote:
     def __init__(self, dct_vote, balloting):
@@ -130,6 +139,12 @@ class Balloting:
         self.set_votes = set()
 
     def add_vote(self, vote: Vote):
+        """
+        Add Vote object to the set of votes in balloting. Each vote can appear only once.
+
+        :param vote: Vote object.
+        :return: None
+        """
         self.set_votes.add(vote)
 
     def __repr__(self):
