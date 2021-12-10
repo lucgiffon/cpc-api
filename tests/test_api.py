@@ -26,3 +26,15 @@ class SearchQuestionServiceTest(unittest.TestCase):
         parlementaires = api.parlementaires()
         self.assertGreater(len(parlementaires), 1)
         self.assertEqual(api.search_parlementaires('Roussel')[0][0]['nom_de_famille'], u'Roussel')
+
+
+class ParliamentarianTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.api = CPCApi(legislature='2017-2022')
+
+    def test_get_vote_from_depute(self):
+        parlementarians = self.api.parlementaires()
+        for parl in parlementarians[:10]:
+            votes_parl = parl.get_votes()
+        print(len(self.api.dct_all_ballotings))
+
