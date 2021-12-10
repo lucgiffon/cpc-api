@@ -20,3 +20,9 @@ class SearchQuestionServiceTest(unittest.TestCase):
         api = CPCApi(legislature='2007-2012')
         self.assertGreater(len(api.parlementaires()), 1)
         self.assertEqual(api.search_parlementaires('Morano')[0][0]['nom_de_famille'], u'Morano')
+
+    def test_2017_2022(self):
+        api = CPCApi(legislature='2017-2022')
+        parlementaires = api.parlementaires()
+        self.assertGreater(len(parlementaires), 1)
+        self.assertEqual(api.search_parlementaires('Roussel')[0][0]['nom_de_famille'], u'Roussel')

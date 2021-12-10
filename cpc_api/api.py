@@ -33,7 +33,7 @@ class CPCApi(object):
         """
 
         assert(ptype in ['depute', 'senateur'])
-        assert(legislature in ['2007-2012', '2012-2017', None])
+        assert(legislature in ['2007-2012', '2012-2017', '2017-2022', None])
         self.legislature = legislature
         self.ptype = ptype
         self.ptype_plural = ptype + 's'
