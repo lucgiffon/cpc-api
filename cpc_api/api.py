@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from io import BytesIO
+import numpy as np
 
-from operator import itemgetter
+import imageio
 import requests
 import warnings
 
@@ -13,22 +15,21 @@ __all__ = ['CPCApi']
 
 
 def memoize(f):
-    cache = {}
-
     def aux(*args, **kargs):
         k = (args, tuple(sorted(kargs.items())))
-        if k not in cache:
-            cache[k] = f(*args, **kargs)
-        return cache[k]
+        if k not in CPCApi.cache:
+            CPCApi.cache[k] = f(*args, **kargs)
+        return CPCApi.cache[k]
     return aux
 
 class CPCApi(object):
     format = 'json'
+    cache = {}
 
     def __init__(self, ptype='depute', legislature=None):
         """
-        type: depute or senateur
-        legislature: 2007-2012 or None
+        :param ptype: depute or senateur
+        :param legislature: 2007-2012 or None
         """
 
         assert(ptype in ['depute', 'senateur'])
@@ -54,21 +55,30 @@ class CPCApi(object):
         data = requests.get(url).json()
         return [depute[self.ptype] for depute in data[self.ptype_plural]]
 
-    def parlementaire(self, slug_name):
+    def parliamentarian(self, slug_name):
         url = '%s/%s/%s' % (self.base_url, slug_name, self.format)
         return requests.get(url).json()[self.ptype]
 
-    def picture(self, slug_name, pixels='60'):
-        return requests.get(self.picture_url(slug_name, pixels=pixels))
+    def picture(self, slug_name, pixels='60') -> np.ndarray:
 
-    def picture_url(self, slug_name, pixels='60'):
+        return imageio.imread(BytesIO(requests.get(self.picture_url(slug_name, pixels=pixels)).content))
+
+    def picture_url(self, slug_name, pixels='60') -> str:
+        """
+        Return the url to the picture of parliamentarian specified by `slug_name` and with size
+
+        :param slug_name:
+        :param pixels:
+        :return:
+        """
         return '%s/%s/photo/%s/%s' % (self.base_url, self.ptype, slug_name, pixels)
 
     def search(self, q, page=1):
         # XXX : the response with json format is not a valid json :'(
         # Temporary return csv raw data
-        url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, 'csv')
-        return requests.get(url).content
+        # url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, 'csv')
+        url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, self.format)
+        return requests.get(url).json()
 
     def parliamentarian_votes(self, p_slug):
         """
@@ -90,8 +100,10 @@ class CPCApi(object):
 
         return lst_votes
 
+
+
     @memoize
-    def parlementaires(self, active=None):
+    def parlementarians(self, active=None):
         """
         Return list of parliamentarians.
 
@@ -106,18 +118,31 @@ class CPCApi(object):
         data = requests.get(url).json()
         return [Parliamentarian(depute[self.ptype], self) for depute in data[self.ptype_plural]]
 
-    def search_parlementaires(self, q, field='nom', limit=5):
+    def search_parliamentarians(self, q: str, field: str = 'nom', limit: [None, int] = None, no_score: bool = True):
         """
         Find a parliamentary based on query `q` on field `field` in the list of parliamentarians.
-        :param q:
-        :param field:
-        :param limit:
+
+
+        :param q: A string close to a substring of `field`
+        :param field: A field in the Parliamentarian objects returned by function self.parliamentarians().
+        :param limit: If None, return only the first parliamentarian. Number of parliamentarians to return. (default: None)
+        :param no_score: If True: Do not return the score of each parliamentarian in the search function.
         :return:
         """
-        extracted = extractBests(q, self.parlementaires(),
-                            processor=lambda x: x.__dict__[field] if isinstance(x, Parliamentarian) else x,
-                            limit=limit)
-        return extracted
+
+        extracted = extractBests(q, self.parlementarians(),
+                                 processor=lambda x: x.__dict__[field] if isinstance(x, Parliamentarian) else x,
+                                 limit=limit or 1)
+        if limit is None:
+            if no_score:
+                return extracted[0][0]
+            else:
+                return extracted[0]
+        if no_score:
+            return [elm[0] for elm in extracted]
+        else:
+            return extracted
+
 
 class Vote:
     def __init__(self, dct_vote, balloting):

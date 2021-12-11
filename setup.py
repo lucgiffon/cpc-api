@@ -47,5 +47,5 @@ setup(
 
     packages=['cpc_api'],
 
-    install_requires=['requests', 'fuzzywuzzy'],
+    install_requires=['requests', 'fuzzywuzzy', 'matplotlib', 'imageio', 'numpy'],
 )
