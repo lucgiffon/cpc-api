@@ -156,18 +156,15 @@ class Vote:
     Vote class.
     """
     def __init__(self, dct_vote, balloting):
-        """ salut """
         self.__dict__.update(dct_vote)  # todo explicit attributes: sqlalchemy
         self.balloting = balloting
         self.number_vote = self.balloting.numero
         self.balloting.add_vote(self)
 
     def __hash__(self):
-        """ salut """
         return hash(f"{self.number_vote}{self.parlementaire_slug}")
 
     def __repr__(self):
-        """ salut """
         return f"<{self.__class__.__name__}: ({self.number_vote}) {self.parlementaire_slug} [{self.position}]>"
 
 
