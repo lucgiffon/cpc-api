@@ -13,9 +13,11 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   api_specifications
-
-
+   base_api_specifications
+   python_api_specifications
+..
+   cpc_api
+   modules
 
 
 Indices and tables

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Main module of CPC-API containing access classes to the API.
+"""
 from io import BytesIO
 import numpy as np
 
@@ -11,7 +14,7 @@ with warnings.catch_warnings():
     from fuzzywuzzy.process import extractBests
 
 
-__all__ = ['CPCApi']
+__all__ = ['CPCApi', 'Parliamentarian', 'Vote', 'Balloting']
 
 
 def memoize(f):
@@ -23,6 +26,10 @@ def memoize(f):
     return aux
 
 class CPCApi(object):
+    """
+    Main access point to the API.
+
+    """
     format = 'json'
     cache = {}
 
@@ -118,7 +125,7 @@ class CPCApi(object):
         data = requests.get(url).json()
         return [Parliamentarian(depute[self.ptype], self) for depute in data[self.ptype_plural]]
 
-    def search_parliamentarians(self, q: str, field: str = 'nom', limit: [None, int] = None, no_score: bool = True):
+    def search_parliamentarians(self, q: str, field: str = 'nom', limit: int = None, no_score: bool = True):
         """
         Find a parliamentary based on query `q` on field `field` in the list of parliamentarians.
 
@@ -145,21 +152,32 @@ class CPCApi(object):
 
 
 class Vote:
+    """
+    Vote class.
+    """
     def __init__(self, dct_vote, balloting):
+        """ salut """
         self.__dict__.update(dct_vote)  # todo explicit attributes: sqlalchemy
         self.balloting = balloting
         self.number_vote = self.balloting.numero
         self.balloting.add_vote(self)
 
     def __hash__(self):
+        """ salut """
         return hash(f"{self.number_vote}{self.parlementaire_slug}")
 
     def __repr__(self):
+        """ salut """
         return f"<{self.__class__.__name__}: ({self.number_vote}) {self.parlementaire_slug} [{self.position}]>"
 
 
 class Balloting:
+    """
+    Balloting class contains a set of votes. It correspond to the pull of all votes made by all parliamentarian
+    who voted at a single balloting.
+    """
     def __init__(self, dct_balloting):
+        """ salut """
         self.__dict__.update(dct_balloting)  # todo explicit attributes: sqlalchemy
         self.set_votes = set()
 
@@ -173,11 +191,15 @@ class Balloting:
         self.set_votes.add(vote)
 
     def __repr__(self):
+        """ salut """
         nb_displayed_chars = 50
         return f"<Balloting: ({self.numero}) '{self.titre[:nb_displayed_chars]}'[{self.sort}]>"
 
 
 class Parliamentarian:
+    """
+    Parliamentarian interfaces CPCApi
+    """
     def __init__(self, dict_parl, api: CPCApi):
         self.__dict__.update(dict_parl)  # todo explicit attributes: sqlalchemy
         self.api = api

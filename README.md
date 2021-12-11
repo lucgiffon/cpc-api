@@ -27,6 +27,8 @@ plt.show()
 
 ## Documentation
 
+(incomplete documentation)
+
 Go to `docs` then run:
 
 ```
