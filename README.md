@@ -25,6 +25,17 @@ plt.show()
 - Request Parliamentarians, Votes, Balloting, etc. and manipulate them as relational objects;
 - (todo) Store locally the database for faster API interactions and less bandwidth consumption;
 
+## Documentation
+
+Go to `docs` then run:
+
+```
+make html
+```
+
+then go to the `build/html` directory to find the `index.html` file.
+
+
 ## Installation
 
 
