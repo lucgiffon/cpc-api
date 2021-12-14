@@ -26,17 +26,29 @@ def memoize(f):
     return aux
 
 class CPCApi(object):
-    """
-    Main access point to the API.
-
-    """
     format = 'json'
     cache = {}
 
     def __init__(self, ptype='depute', legislature=None):
         """
-        :param ptype: depute or senateur
-        :param legislature: 2007-2012 or None
+        The `CPCApi` objects provide access points to the API.
+
+        Methods of this class make calls to the web API and return data objects.
+
+
+        Attributes
+        ----------
+        base_url: str
+            The base url used when requesting the API.
+
+        Parameters
+        ----------
+        ptype: str: ('depute' or 'senateur')
+             This string will be part of the urls when requesting the API. It allows to specify
+             which kind of parliamentarians you are interested into. (default: None)
+        legislature: str or None: ('2007-2012', '2012-2017', '2017-2022', None)
+            This string will be part of the urls when requesting the API. It allows to specify what legislature
+            period you are interested into.
         """
 
         assert(ptype in ['depute', 'senateur'])
@@ -49,7 +61,15 @@ class CPCApi(object):
 
     def synthese(self, month=None):
         """
-        month format: YYYYMM
+        Return a global synthesis of all parliamentarians on the given month.
+
+        Parameters
+        ----------
+        month format: string YYYYMM
+
+        Returns
+        -------
+        A list of dict objects corresponding to the parliamentarians.
         """
         if month is None and self.legislature == '2012-2017':
             raise AssertionError('Global Synthesis on legislature does not work, see https://github.com/regardscitoyens/nosdeputes.fr/issues/69')
@@ -60,9 +80,20 @@ class CPCApi(object):
         url = '%s/synthese/%s/%s' % (self.base_url, month, self.format)
 
         data = requests.get(url).json()
+        # todo should return a list of Parliamentarian objects
         return [depute[self.ptype] for depute in data[self.ptype_plural]]
 
     def parliamentarian(self, slug_name):
+        """
+
+        Parameters
+        ----------
+        slug_name
+
+        Returns
+        -------
+
+        """
         url = '%s/%s/%s' % (self.base_url, slug_name, self.format)
         return requests.get(url).json()[self.ptype]
 
