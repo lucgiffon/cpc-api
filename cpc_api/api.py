@@ -4,7 +4,7 @@ Main module of CPC-API containing access classes to the API.
 """
 from io import BytesIO
 import numpy as np
-
+from functools import wraps
 import imageio
 import requests
 import warnings
@@ -19,6 +19,7 @@ __all__ = ['CPCApi', 'Parliamentarian', 'Vote', 'Balloting']
 
 
 def memoize(f):
+    @wraps(f)
     def aux(*args, **kargs):
         k = (args, tuple(sorted(kargs.items())))
         if k not in CPCApi.cache:
@@ -217,6 +218,7 @@ class CPCApi(object):
         data = requests.get(url).json()
         return [Parliamentarian(depute[self.ptype], self) for depute in data[self.ptype_plural]]
 
+    @memoize
     def search_parliamentarians(self, q: str, field: str = 'nom', limit: int = None, no_score: bool = True):
         """
         Finds a parliamentarian based on query `q` and attribute `field` in the list of parliamentarians.
