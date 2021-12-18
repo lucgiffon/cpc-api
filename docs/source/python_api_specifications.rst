@@ -7,3 +7,4 @@ how the web api is called under the hood, see this :doc:`page <base_api_specific
 .. automodule:: cpc_api.api
     :members:
     :show-inheritance:
+    :special-members: __init__
