@@ -23,7 +23,7 @@ plt.show()
 ## Features
 
 - Request Parliamentarians, Votes, Balloting, etc. and manipulate them as relational objects;
-- (todo) Store locally the database for faster API interactions and less bandwidth consumption;
+- (todo maybe) Store locally the database for faster API interactions and less bandwidth consumption;
 
 ## Documentation
 
@@ -37,6 +37,11 @@ make html
 
 then go to the `build/html` directory to find the `index.html` file.
 
+### Todos in documentation
+- Cross-references between docstring and other class objects and methods. For instance, if a method returns
+a list of `Parliamentarian` objects, the docstring should provide a reference to that class so that a neat link
+appears in the rendered documentation.
+
 
 ## Installation
 
@@ -49,7 +54,7 @@ Clone the current repository then go in the root directory and simply run
 
 
 - If you find any issue, just raise one on the github repo! (or contact me directly here: https://discord.gg/BhruTKKx93)
-- Contributions to the documentation are very welcome;
+- Contributions to the documentation are very welcome (see `Todos in documentation`, upper in this README.md file);
 - Any other contribution is also welcome.
 
 ## Credits

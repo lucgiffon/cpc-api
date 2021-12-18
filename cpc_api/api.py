@@ -8,6 +8,7 @@ import numpy as np
 import imageio
 import requests
 import warnings
+from typing import List
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -25,28 +26,24 @@ def memoize(f):
         return CPCApi.cache[k]
     return aux
 
+
 class CPCApi(object):
+    """
+    The `CPCApi` objects provide access points to the API.
+
+    Methods of this class make calls to the web API and return data objects.
+    """
     format = 'json'
     cache = {}
 
     def __init__(self, ptype='depute', legislature=None):
         """
-        The `CPCApi` objects provide access points to the API.
-
-        Methods of this class make calls to the web API and return data objects.
-
-
-        Attributes
-        ----------
-        base_url: str
-            The base url used when requesting the API.
-
         Parameters
         ----------
-        ptype: str: ('depute' or 'senateur')
+        ptype: Choice(['depute', 'senateur'])
              This string will be part of the urls when requesting the API. It allows to specify
              which kind of parliamentarians you are interested into. (default: None)
-        legislature: str or None: ('2007-2012', '2012-2017', '2017-2022', None)
+        legislature: Choice(['2007-2012', '2012-2017', '2017-2022', None])
             This string will be part of the urls when requesting the API. It allows to specify what legislature
             period you are interested into.
         """
@@ -61,18 +58,24 @@ class CPCApi(object):
 
     def synthese(self, month=None):
         """
-        Return a global synthesis of all parliamentarians on the given month.
+        Returns a global synthesis of all parliamentarians on the given month.
+
+        .. deprecated:: 0.1.5
+            This function doesn't return data Object but a simple dict. Its returned values will be changed in the
+            future.
 
         Parameters
         ----------
-        month format: string YYYYMM
+        month: str
+         The month of the requested synthesis in format: YYYYMM.
 
         Returns
         -------
         A list of dict objects corresponding to the parliamentarians.
         """
         if month is None and self.legislature == '2012-2017':
-            raise AssertionError('Global Synthesis on legislature does not work, see https://github.com/regardscitoyens/nosdeputes.fr/issues/69')
+            raise AssertionError('Global Synthesis on legislature does not work, '
+                                 'see https://github.com/regardscitoyens/nosdeputes.fr/issues/69')
 
         if month is None:
             month = 'data'
@@ -83,70 +86,128 @@ class CPCApi(object):
         # todo should return a list of Parliamentarian objects
         return [depute[self.ptype] for depute in data[self.ptype_plural]]
 
+    @memoize
     def parliamentarian(self, slug_name):
         """
+        Returns parliamentarian data object from its slug.
 
         Parameters
         ----------
-        slug_name
+        slug_name: str
+            The slug of the parliamentarian. Usually its first and last name with a dash.
 
         Returns
         -------
-
+        Parliamentarian
+            Requested parliamentarian data object.
         """
         url = '%s/%s/%s' % (self.base_url, slug_name, self.format)
-        return requests.get(url).json()[self.ptype]
+        # todo there should be a mecanism to handle errors in case of bad slug name.
+        return Parliamentarian(requests.get(url).json()[self.ptype], self)
 
+    @memoize
     def picture(self, slug_name, pixels='60') -> np.ndarray:
+        """
+        Returns the picture of the parliamentarian specified by `slug_name` and with `pixels` height.
 
+        Parameters
+        ----------
+        slug_name: str
+            The slug of the parliamentarian.
+        pixels: int
+            The height (number of rows) of the picture.
+
+        Returns
+        -------
+        np.ndarray
+            A 3D array representing the picture of the parliamentarian.
+        """
         return imageio.imread(BytesIO(requests.get(self.picture_url(slug_name, pixels=pixels)).content))
 
     def picture_url(self, slug_name, pixels='60') -> str:
         """
-        Return the url to the picture of parliamentarian specified by `slug_name` and with size
+        Returns the url to the picture of parliamentarian specified by `slug_name` and with height `pixels`.
 
-        :param slug_name:
-        :param pixels:
-        :return:
+        Parameters
+        ----------
+        slug_name: str
+            The slug of the parliamentarian.
+        pixels: int
+            The height (number of rows) of the picture.
+
+        Returns
+        -------
+        str
+            The url of the picture.
         """
         return '%s/%s/photo/%s/%s' % (self.base_url, self.ptype, slug_name, pixels)
 
-    def search(self, q, page=1):
-        # XXX : the response with json format is not a valid json :'(
-        # Temporary return csv raw data
+    @memoize
+    def search(self, q: str, page: int = 1) -> dict:
+        """
+        Runs the search function of the website (nosdeputes.fr or nossenateurs.fr)
+        and returns the search result as a dictionary.
+
+        Parameters
+        ----------
+        q: str
+            The query for the search.
+        page: int
+            The number of the page to display.
+
+        Returns
+        -------
+        dict
+            A dictionary representing the search result.
+        """
         # url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, 'csv')
+        # not necessary because now the returned format is a valid json
         url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, self.format)
         return requests.get(url).json()
 
-    def parliamentarian_votes(self, p_slug):
+    @memoize
+    def parliamentarian_votes(self, p_slug: str) -> List:
         """
-        Return the votes of parliamentarian specified by `p_slug`
+        Returns the votes of parliamentarian specified by `p_slug`.
 
-        :param p_slug: slug of paralimentarian.
-        :return: list of Votes objects.
+        Parameters
+        ----------
+        p_slug: str
+            The slug of the parliamentarian.
+
+        Returns
+        -------
+        List[Vote]
+            List of Vote objects from the parliamentarian.
         """
         url = '%s/%s/%s/%s' % (self.base_url, p_slug, "votes", self.format)
-        data = requests.get(url).json()  # todo error may happen here
+        data = requests.get(url).json()  # todo handle the error that may happen here
 
         lst_votes = []
         for dict_vote in data["votes"]:
             dict_vote = dict_vote["vote"]
             dict_balloting = dict_vote["scrutin"]
-            balloting = self.dct_all_ballotings[dict_balloting["numero"]] = self.dct_all_ballotings.get(dict_balloting["numero"], Balloting(dict_balloting))
+            balloting = self.dct_all_ballotings[dict_balloting["numero"]] = \
+                self.dct_all_ballotings.get(dict_balloting["numero"], Balloting(dict_balloting))
             vote_obj = Vote(dict_vote, balloting)
             lst_votes.append(vote_obj)
 
         return lst_votes
 
-
-
     @memoize
-    def parlementarians(self, active=None):
+    def parlementarians(self, active: bool = None) -> List:
         """
-        Return list of parliamentarians.
+        Returns list of parliamentarians.
 
-        :param active: If True, return only "enmandat" parliamentarians. (default: None)
-        :return: list of Parliamentarian objects.
+        Parameters
+        ----------
+        active: bool
+            If True, return only "enmandat" parliamentarians. (default: None)
+
+        Returns
+        -------
+        List[Parliamentarian]
+            list of Parliamentarian objects.
         """
         if active is None:
             url = '%s/%s/%s' % (self.base_url, self.ptype_plural, self.format)
@@ -158,19 +219,33 @@ class CPCApi(object):
 
     def search_parliamentarians(self, q: str, field: str = 'nom', limit: int = None, no_score: bool = True):
         """
-        Find a parliamentary based on query `q` on field `field` in the list of parliamentarians.
+        Finds a parliamentarian based on query `q` and attribute `field` in the list of parliamentarians.
 
+        Parameters
+        ----------
+        q: str
+            A string close to a substring of `field`.
+        field: str
+            A field (attribute) in the Parliamentarian objects returned by function self.parliamentarians().
+            (default: nom)
+        limit: Choice([int, None])
+             If None, return only the first parliamentarian. Number of parliamentarians to return. (default: None)
+        no_score: bool
+            If True: Do not return the score of each parliamentarian in the search function. (default: True)
 
-        :param q: A string close to a substring of `field`
-        :param field: A field in the Parliamentarian objects returned by function self.parliamentarians().
-        :param limit: If None, return only the first parliamentarian. Number of parliamentarians to return. (default: None)
-        :param no_score: If True: Do not return the score of each parliamentarian in the search function.
-        :return:
+        Returns
+        -------
+        List[Parliamentarian] or Parliamentarian
+            Depending on the `limit` parameter, returns a list of Parliamentarian objects with size `limit` or just
+            one Parliamentarian object.
         """
-
+        # extractBests applies distortions on q to see if it can match some elements in parliamentarians
+        # based on their `field` attribute. It also returns a score to each result
+        # that tells how bad the distortion was to get that result.
         extracted = extractBests(q, self.parlementarians(),
                                  processor=lambda x: x.__dict__[field] if isinstance(x, Parliamentarian) else x,
                                  limit=limit or 1)
+        # extracted is a list of couples (Parliamentarian, score)
         if limit is None:
             if no_score:
                 return extracted[0][0]
